@@ -15,15 +15,14 @@ import (
 	"crypto/tls"
 )
 
-var description = `time-http
-Measure time to get request
+var description = `Measure time to get request
 Simple make http request and returns the amount of time it took
 `
 
 func init() {
 	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), description)
-		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "%s:\n%s", os.Args[0], description)
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage:\n")
 		fmt.Fprintf(flag.CommandLine.Output(), "\t%s <url1> [<url2> .. <urln>]\n", os.Args[0])
 		flag.PrintDefaults()
 	}

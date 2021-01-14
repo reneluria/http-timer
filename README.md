@@ -1,11 +1,24 @@
+Install
+-------
+
 ```
-go get github.com/reneluria/time-http 
-time-http -h 2>&1 > README.md
-time-http
+go get github.com/reneluria/http-timer
+```
+
+Doc
+----
+
+```
+http-timer -h 2>&1 > README.md
+```
+
+Here it is
+```
+http-timer:
 Measure time to get request
 Simple make http request and returns the amount of time it took
-Usage of ./time-http:
-	./time-http <url1> [<url2> .. <urln>]
+Usage:
+	http-timer <url1> [<url2> .. <urln>]
   -c int
     	number of requests per url (default 1)
   -i string
