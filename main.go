@@ -50,7 +50,7 @@ func BenchUrl(urlStr string, ch chan Result) {
 	// create request
 	req, err := http.NewRequest("GET", urlStr, nil)
 	if err != nil {
-		fmt.Printf("Error: cannot create http request: %v\n", err)
+		log.Printf("Error: cannot create http request: %v\n", err)
 		result.Duration = time.Since(start)
 		result.Err = err
 		ch <- result
@@ -60,12 +60,13 @@ func BenchUrl(urlStr string, ch chan Result) {
 	// launch request
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalln(err)
+		log.Printf("cannot launch request: %v\n", err)
 		result.Duration = time.Since(start)
 		result.Err = err
 		ch <- result
 		return
 	}
+	defer client.CloseIdleConnections()
 
 	// read body
 	if _, err := ioutil.ReadAll(resp.Body); err != nil {
@@ -75,9 +76,9 @@ func BenchUrl(urlStr string, ch chan Result) {
 		ch <- result
 		return
 	}
-	// log.Println(string(body))
 	defer resp.Body.Close()
 
+	// log.Println(string(body))
 	elapsed := time.Since(start)
 	// fmt.Printf("%s %d %s\n", benchUrl.String(), resp.StatusCode, elapsed)
 	result.Duration = elapsed
