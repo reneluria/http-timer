@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -9,10 +10,9 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"os"
+	"strings"
 	"time"
-	"crypto/tls"
 )
 
 var description = `Measure time to get request
@@ -29,9 +29,9 @@ func init() {
 }
 
 type Result struct {
-	URL string
+	URL      string
 	Duration time.Duration
-	Err error
+	Err      error
 }
 
 func BenchUrl(urlStr string, ch chan Result) {
@@ -85,13 +85,13 @@ func BenchUrl(urlStr string, ch chan Result) {
 	ch <- result
 }
 
-func TimeUrls(urls []string, timeout time.Duration) ([]Result) {
+func TimeUrls(urls []string, timeout time.Duration) []Result {
 
 	var results []Result
 
 	// launch benches in parallel
 	ch := make(chan Result)
-	for _, thisUrl := range(urls) {
+	for _, thisUrl := range urls {
 		go BenchUrl(thisUrl, ch)
 	}
 
@@ -163,7 +163,7 @@ func main() {
 	}
 
 	// check urls in arguments
-	for _, arg := range(flag.Args()) {
+	for _, arg := range flag.Args() {
 		thisUrl, err := url.Parse(arg)
 		if err != nil {
 			fmt.Printf("Error: cannot parse %v as url: %v\n", arg, err)
@@ -211,8 +211,8 @@ func main() {
 	for i := 0; i < count; i++ {
 		results := TimeUrls(urls, time.Duration(*timeout))
 		var duration time.Duration
-		for _, result := range(results) {
-			if ! quiet {
+		for _, result := range results {
+			if !quiet {
 				fmt.Printf("%v: %v\n", result.URL, result.Duration)
 			}
 			duration += result.Duration
@@ -221,29 +221,28 @@ func main() {
 			countTimeout++
 		} else {
 			countOK++
-			timings = append(timings, time.Duration(float64(duration) / float64(len(results))))
+			timings = append(timings, time.Duration(float64(duration)/float64(len(results))))
 		}
 
 		// display every now and then
 		select {
 		case <-ticker.C:
-			log.Printf("%d/%d ok, %d timeout (%.02f%%) %v/%v/%v\n", 
-				countOK, i, countTimeout, 
-				float64(countTimeout * 100) / float64(i),
+			log.Printf("%d/%d ok, %d timeout (%.02f%%) %v/%v/%v\n",
+				countOK, i, countTimeout,
+				float64(countTimeout*100)/float64(i),
 				minSlice(timings), avgSlice(timings), maxSlice(timings))
 		default:
 		}
 		// last iteration
-		if i != count - 1 {
+		if i != count-1 {
 			time.Sleep(time.Duration(wait) * time.Millisecond)
 		}
 	}
 
 	fmt.Println("Summary:")
-	fmt.Printf("%d/%d ok, %d timeout (%.02f%%) %v/%v/%v\n", 
-		countOK, countOK + countTimeout, countTimeout, 
-		float64(countTimeout * 100) / float64(countOK + countTimeout),
+	fmt.Printf("%d/%d ok, %d timeout (%.02f%%) %v/%v/%v\n",
+		countOK, countOK+countTimeout, countTimeout,
+		float64(countTimeout*100)/float64(countOK+countTimeout),
 		minSlice(timings), avgSlice(timings), maxSlice(timings))
 
 }
-
