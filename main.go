@@ -173,7 +173,10 @@ func main() {
 		for _, result := range(results) {
 			fmt.Printf("%v: %v\n", result.URL, result.Duration)
 		}
-		time.Sleep(time.Duration(wait) * time.Millisecond)
+		// last iteration
+		if i != *count - 1 {
+			time.Sleep(time.Duration(wait) * time.Millisecond)
+		}
 	}
 
 }
