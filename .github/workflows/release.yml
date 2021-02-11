@@ -21,9 +21,13 @@ jobs:
       - name: Build
         run: go build -v ./...
 
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+
       - name: Create archive
         run: |
-          zip http-timer-linux-amd64-${{ github.ref }}.zip http-timer
+          zip http-timer-linux-amd64-${{ steps.get_version.outputs.VERSION }}.zip http-timer
 
       - name: Create Release
         id: create_release
@@ -43,6 +47,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./http-timer-linux-amd64-${{ github.ref }}.zip
-          asset_name: http-timer-linux-amd64-${{ github.ref }}.zip
+          asset_path: ./http-timer-linux-amd64-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: http-timer-linux-amd64-${{ steps.get_version.outputs.VERSION }}.zip
           asset_content_type: application/zip
