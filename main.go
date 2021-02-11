@@ -111,18 +111,50 @@ func TimeUrls(urls []string, timeout time.Duration) ([]Result) {
 	return results
 }
 
+func minSlice(values []time.Duration) time.Duration {
+	var min time.Duration
+	for i, val := range values {
+		if i == 0 || val < min {
+			min = val
+		}
+	}
+	return min.Truncate(time.Millisecond)
+}
+
+func maxSlice(values []time.Duration) time.Duration {
+	var max time.Duration
+	for i, val := range values {
+		if i == 0 || val > max {
+			max = val
+		}
+	}
+	return max.Truncate(time.Millisecond)
+}
+
+func avgSlice(values []time.Duration) time.Duration {
+	var total time.Duration
+	for _, val := range values {
+		total += val
+	}
+	return time.Duration(float64(total) / float64(len(values))).Truncate(time.Millisecond)
+}
+
 func main() {
 	// command line arguments
 	var urls []string
 	var ip, port string
-	var skipverify bool
-	var wait int64
+	var skipverify, quiet bool
+	var wait, reportTimer int64
+	var count int
+
 	timeout := flag.Int("t", 1000, "timeout in milliseconds")
-	count := flag.Int("c", 1, "number of requests per url")
+	flag.IntVar(&count, "c", 1, "number of requests per url")
 	flag.StringVar(&ip, "i", "", "ip to send requests to")
 	flag.StringVar(&port, "p", "", "tcp port to connect to")
 	flag.BoolVar(&skipverify, "k", false, "skip tls certificate verification")
 	flag.Int64Var(&wait, "w", 500, "milliseconds to wait between each call")
+	flag.BoolVar(&quiet, "quiet", false, "dont show that much output")
+	flag.Int64Var(&reportTimer, "report-interval", 5, "report timings at this interval")
 	flag.Parse()
 
 	if len(flag.Args()) < 1 {
@@ -168,16 +200,50 @@ func main() {
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
-	for i := 0; i < *count; i++ {
+	var countOK, countTimeout int
+
+	ticker := time.NewTicker(time.Second * time.Duration(reportTimer))
+	defer ticker.Stop()
+
+	// a slice to contain results
+	var timings []time.Duration
+
+	for i := 0; i < count; i++ {
 		results := TimeUrls(urls, time.Duration(*timeout))
+		var duration time.Duration
 		for _, result := range(results) {
-			fmt.Printf("%v: %v\n", result.URL, result.Duration)
+			if ! quiet {
+				fmt.Printf("%v: %v\n", result.URL, result.Duration)
+			}
+			duration += result.Duration
+		}
+		if len(results) < len(urls) {
+			countTimeout++
+		} else {
+			countOK++
+			timings = append(timings, time.Duration(float64(duration) / float64(len(results))))
+		}
+
+		// display every now and then
+		select {
+		case <-ticker.C:
+			log.Printf("%d/%d ok, %d timeout (%.02f%%) %v/%v/%v\n", 
+				countOK, i, countTimeout, 
+				float64(countTimeout * 100) / float64(i),
+				minSlice(timings), avgSlice(timings), maxSlice(timings))
+		default:
 		}
 		// last iteration
-		if i != *count - 1 {
+		if i != count - 1 {
 			time.Sleep(time.Duration(wait) * time.Millisecond)
 		}
 	}
+
+	fmt.Println("Summary:")
+	fmt.Printf("%d/%d ok, %d timeout (%.02f%%) %v/%v/%v\n", 
+		countOK, countOK + countTimeout, countTimeout, 
+		float64(countTimeout * 100) / float64(countOK + countTimeout),
+		minSlice(timings), avgSlice(timings), maxSlice(timings))
 
 }
 
