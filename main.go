@@ -28,13 +28,15 @@ func init() {
 	}
 }
 
+// Result is a struct holding result of a timing
 type Result struct {
 	URL      string
 	Duration time.Duration
 	Err      error
 }
 
-func BenchUrl(urlStr string, ch chan Result) {
+// BenchURL takes an URL and a response channel, and writes timings to it
+func BenchURL(urlStr string, ch chan Result) {
 	start := time.Now()
 
 	var result = Result{URL: urlStr}
@@ -85,14 +87,16 @@ func BenchUrl(urlStr string, ch chan Result) {
 	ch <- result
 }
 
-func TimeUrls(urls []string, timeout time.Duration) []Result {
+// TimeURLs takes a slice of urls and a timeout during it measures timings
+// and returns the timings in a Result slice
+func TimeURLs(urls []string, timeout time.Duration) []Result {
 
 	var results []Result
 
 	// launch benches in parallel
 	ch := make(chan Result)
-	for _, thisUrl := range urls {
-		go BenchUrl(thisUrl, ch)
+	for _, thisURL := range urls {
+		go BenchURL(thisURL, ch)
 	}
 
 	// this will timeout
@@ -164,16 +168,16 @@ func main() {
 
 	// check urls in arguments
 	for _, arg := range flag.Args() {
-		thisUrl, err := url.Parse(arg)
+		thisURL, err := url.Parse(arg)
 		if err != nil {
 			fmt.Printf("Error: cannot parse %v as url: %v\n", arg, err)
 			os.Exit(1)
 		}
-		if thisUrl.Scheme != "http" && thisUrl.Scheme != "https" {
+		if thisURL.Scheme != "http" && thisURL.Scheme != "https" {
 			fmt.Printf("Error: unsupported url scheme in %v\n", arg)
 			os.Exit(1)
 		}
-		urls = append(urls, thisUrl.String())
+		urls = append(urls, thisURL.String())
 	}
 
 	// if ip or port is specied, modify the DefaultTransport to always dial our ip
@@ -209,7 +213,7 @@ func main() {
 	var timings []time.Duration
 
 	for i := 0; i < count; i++ {
-		results := TimeUrls(urls, time.Duration(*timeout))
+		results := TimeURLs(urls, time.Duration(*timeout))
 		var duration time.Duration
 		for _, result := range results {
 			if !quiet {
